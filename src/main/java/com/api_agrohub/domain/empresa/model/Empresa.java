@@ -37,6 +37,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "empresa")
 @Filter(name = "tenantFilter", condition = "id_tenant = :tenantId")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Empresa {
 
     @Id

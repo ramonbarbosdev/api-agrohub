@@ -25,12 +25,12 @@ public class TenantInterceptor implements HandlerInterceptor {
     private TenantSessionFilter tenantSessionFilter;
 
     private static final String[] PUBLIC_PATHS = {
-            "/api-agrohub/swagger-ui",
-            "/api-agrohub/v3/api-docs",
-            "/api-agrohub/swagger-resources",
-            "/api-agrohub/webjars",
-            "/api-agrohub/auth",
-            "/api-agrohub/login"
+            "/agrohub/swagger-ui",
+            "/agrohub/v3/api-docs",
+            "/agrohub/swagger-resources",
+            "/agrohub/webjars",
+            // "/agrohub/auth",
+            // "/agrohub/login"
     };
 
     private boolean isPublic(HttpServletRequest request) {
@@ -62,25 +62,22 @@ public class TenantInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {
 
-        if (isPublic(request)) {
-            return true;
-        }
-
         String tenantId = resolverTenantDoDominio(request);
         TenantContext.setTenantId(tenantId);
 
-        // ativa filtro do Hibernate para esta requisição
-        tenantSessionFilter.enableFilter();
+        tenantSessionFilter.enableFilter(); // habilita filtro SEMPRE
 
-        // valida token se existir
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && !authHeader.isBlank()) {
-            String tenantToken = jwtService.extractTenantId(authHeader);
+        if (!isPublic(request)) {
+            // valida token se existir
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && !authHeader.isBlank()) {
+                String tenantToken = jwtService.extractTenantId(authHeader);
 
-            if (!tenantId.equalsIgnoreCase(tenantToken)) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("{\"error\":\"Token não pertence a este tenant\"}");
-                return false;
+                if (!tenantId.equalsIgnoreCase(tenantToken)) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("{\"error\":\"Token não pertence a este tenant\"}");
+                    return false;
+                }
             }
         }
 

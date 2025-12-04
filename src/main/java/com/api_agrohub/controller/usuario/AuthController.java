@@ -51,6 +51,12 @@ public class AuthController {
     @Autowired
     private AuthService service;
 
+    @GetMapping(value = "/dominio", produces = "application/json")
+    public ResponseEntity verificarDominio() throws Exception {
+        return ResponseEntity.ok().body(Map.of("status", true));
+
+    }
+
     @Operation(summary = "Autenticação de usuario", description = "Faz login com login e senha")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Autenticação aceita"),
