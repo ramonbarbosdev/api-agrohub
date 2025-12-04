@@ -1,17 +1,17 @@
 package com.api_agrohub.context;
 
 public class TenantContext {
-    private static final ThreadLocal<String> currentTenant = new ThreadLocal<>();
+     private static final ThreadLocal<String> CONTEXT = new ThreadLocal<>();
 
     public static void setTenantId(String tenantId) {
-        currentTenant.set(tenantId);
+        CONTEXT.set(tenantId);
     }
 
     public static String getTenantId() {
-        return currentTenant.get();
+        return CONTEXT.get();
     }
 
     public static void clear() {
-        currentTenant.remove();
+        CONTEXT.remove();
     }
 }

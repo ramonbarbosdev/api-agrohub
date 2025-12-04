@@ -128,13 +128,14 @@
 			<version>3.3.12</version>
 			</dependency>
 			<!-- websocket -->
-			<!-- openia -->
 			<dependency>
-			<groupId>com.openai</groupId>
-			<artifactId>openai-java</artifactId>
-			<version>4.7.1</version>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>1.18.32</version>
+				<scope>provided</scope>
 			</dependency>
-			<!-- openia -->
+	
+			
 	</dependencies>
 
 	<build>

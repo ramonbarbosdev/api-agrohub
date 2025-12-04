@@ -33,7 +33,7 @@ public class SwaggerConfig {
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                  .servers(List.of(
                         // new Server().url("https://api-agrotech.ramoncode.com.br/agrotech") 
-                        new Server().url("http://localhost:8080/orcafacil") 
+                        new Server().url("http://localhost:8080/api-agrohub") 
 
                 ));
     }

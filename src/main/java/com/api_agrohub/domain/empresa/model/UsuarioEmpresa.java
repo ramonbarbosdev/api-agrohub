@@ -3,6 +3,8 @@ package com.api_agrohub.domain.empresa.model;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.Filter;
+
 import com.api_agrohub.domain.usuario.model.Usuario;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;

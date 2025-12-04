@@ -9,18 +9,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.api_agrohub.context.TenantContext;
 import com.api_agrohub.domain.empresa.model.Empresa;
-import com.api_agrohub.domain.empresa.model.UsuarioEmpresa;
 import com.api_agrohub.domain.empresa.repository.EmpresaRepository;
+import com.api_agrohub.domain.empresa.repository.TenantRepository;
 import com.api_agrohub.domain.sistema.service.ValidacaoService;
-import com.api_agrohub.domain.usuario.model.Usuario;
-import com.api_agrohub.util.TenantUtil;
 
 @Service
 public class EmpresaService {
 
     @Autowired
     private EmpresaRepository repository;
+
+    @Autowired
+    private TenantRepository tenantRepository;
 
     @Autowired
     private ValidacaoService validacaoService;
@@ -43,8 +45,17 @@ public class EmpresaService {
                 repository.verificarCodigoExistente(SEQUENCIA_FUNCTION.apply(objeto)),
                 ID_FUNCTION);
 
-        if (objeto.getId_tenant() == null || objeto.getId_tenant().isEmpty()) {
-            objeto.setId_tenant(TenantUtil.generateTenantId());
+        if (objeto.getId_tenant() == null || objeto.getId_tenant().isBlank()) {
+
+            String tenantId = TenantContext.getTenantId();
+
+            if (tenantId == null) {
+                tenantId = tenantRepository.findTenantIdBySubdomain("localhost")
+                        .orElseThrow(() -> new IllegalStateException(
+                                "Tenant padrão 'localhost' não encontrado. Verifique o TenantInitializer."));
+            }
+
+            objeto.setId_tenant(tenantId);
         }
     }
 

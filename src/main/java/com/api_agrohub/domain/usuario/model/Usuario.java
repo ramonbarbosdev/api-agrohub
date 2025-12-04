@@ -1,6 +1,5 @@
 package com.api_agrohub.domain.usuario.model;
 
-
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -9,6 +8,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.hibernate.annotations.Filter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -31,6 +31,7 @@ import jakarta.persistence.JoinColumns;
 import jakarta.persistence.ForeignKey;
 
 @Entity
+@Filter(name = "tenantFilter", condition = "id_tenant = :tenantId")
 public class Usuario implements UserDetails {
 
 	/**
@@ -55,6 +56,7 @@ public class Usuario implements UserDetails {
 
 	private String img;
 
+	@Column(name = "id_tenant", nullable = false)
 	private String id_tenant;
 
 	@ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
