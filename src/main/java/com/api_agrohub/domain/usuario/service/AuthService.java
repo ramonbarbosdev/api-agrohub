@@ -188,7 +188,7 @@ public class AuthService {
 
     public void criarEmpresaBase(Usuario objeto) throws Exception {
 
-        String nomeBase = "Administração";
+        String nomeBase = "Desenvolvimento";
         Empresa empresa = empresaService.verificarExistenciaPorNome(nomeBase);
         if (empresa == null) {
             empresa = new Empresa();
