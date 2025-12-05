@@ -60,6 +60,7 @@ public class AuthService {
     public Map efetuarLogin(AuthLoginDTO obj, HttpServletResponse response, HttpServletRequest request)
             throws Exception {
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || authHeader.isBlank()) {
@@ -78,7 +79,7 @@ public class AuthService {
         String finalToken = jwtTokenAutenticacaoService.addAuthentication(response, login, idTenant);
 
         onlineService.adicionarUsuario(login);
-        messagingTemplate.convertAndSend("/topic/online", "update");
+        messagingTemplate.convertAndSend("/topic/online",   Map.of("login", login) );
 
         return Map.of(
                 "login", login,
@@ -86,7 +87,9 @@ public class AuthService {
                 "role", objeto.getRoles().iterator().next().getNomeRole(),
                 "token", finalToken,
                 "isAreaDev", isAreaDev != null && isAreaDev ? true : false,
-                "img", objeto.getImg() == null ? "" : objeto.getImg());
+                "img", objeto.getImg() == null ? "" : objeto.getImg(),
+                "isAuthenticado" ,auth.isAuthenticated()
+                );
 
     }
 
@@ -231,7 +234,7 @@ public class AuthService {
         if (auth != null && auth.isAuthenticated()) {
             new SecurityContextLogoutHandler().logout(request, response, auth);
             onlineService.removerUsuario(auth.getName());
-            messagingTemplate.convertAndSend("/topic/online", "update");
+            messagingTemplate.convertAndSend("/topic/online", Map.of("login", ""));
             return true;
         }
 
