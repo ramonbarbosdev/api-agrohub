@@ -1,6 +1,5 @@
 package com.api_agrohub.domain.usuario.service;
 
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,7 +59,6 @@ public class UsuarioService {
     @Transactional(rollbackFor = Exception.class)
     public Usuario salvar(Usuario objeto) throws Exception {
 
- 
         List<UsuarioEmpresa> itensUsuarioEmpresas = objeto.getItensUsuarioEmpresa();
         objeto.setItensUsuarioEmpresa(null);
 
@@ -74,11 +72,9 @@ public class UsuarioService {
 
             if (senhaInformada.equals(senhaBanco)) {
                 objeto.setSenha(senhaBanco);
-            }
-            else if (!passwordEncoder.matches(senhaInformada, senhaBanco)) {
+            } else if (!passwordEncoder.matches(senhaInformada, senhaBanco)) {
                 objeto.setSenha(passwordEncoder.encode(senhaInformada));
-            }
-            else {
+            } else {
                 objeto.setSenha(senhaBanco);
             }
 
@@ -180,6 +176,17 @@ public class UsuarioService {
             usuario.setSenha(senhacriptografada);
         }
 
+    }
+
+    public Usuario obterPorId(Long id) throws Exception {
+
+        Optional<Usuario> objeto = repository.findById(id);
+
+        if (!objeto.isPresent()) {
+            return null;
+        }
+
+        return objeto.get();
     }
 
     public void excluir(Long id) throws Exception {

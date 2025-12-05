@@ -2,6 +2,7 @@ package com.api_agrohub.domain.usuario.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -56,30 +57,34 @@ public class AuthService {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
-    public Map efetuarLogin(AuthLoginDTO obj, HttpServletResponse response)
+    public Map efetuarLogin(AuthLoginDTO obj, HttpServletResponse response, HttpServletRequest request)
             throws Exception {
 
-        String login = obj.getLogin();
-        String senha = obj.getSenha();
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || authHeader.isBlank()) {
+            throw new Exception("Token temporário ausente!");
+        }
+
+        Long idUsuario = jwtTokenAutenticacaoService.extractLogin(authHeader);
+
+        Usuario objeto = usuarioService.obterPorId(idUsuario);
+
         String idTenant = obj.getId_tenant();
         Boolean isAreaDev = obj.getIsAreaDev();
-
-        var usernamePassword = new UsernamePasswordAuthenticationToken(login, senha);
-        Usuario objeto = repository.findUserByLogin(login);
-
+        String login = objeto.getLogin();
         validarLogin(objeto, idTenant);
 
-        var auth = this.authenticationManager.authenticate(usernamePassword);
-        String token = jwtTokenAutenticacaoService.addAuthentication(response, auth.getName(), idTenant);
+        String finalToken = jwtTokenAutenticacaoService.addAuthentication(response, login, idTenant);
 
         onlineService.adicionarUsuario(login);
         messagingTemplate.convertAndSend("/topic/online", "update");
 
         return Map.of(
-                "login", objeto.getLogin(),
+                "login", login,
                 "nome", objeto.getNome(),
                 "role", objeto.getRoles().iterator().next().getNomeRole(),
-                "token", token,
+                "token", finalToken,
                 "isAreaDev", isAreaDev != null && isAreaDev ? true : false,
                 "img", objeto.getImg() == null ? "" : objeto.getImg());
 
@@ -104,8 +109,11 @@ public class AuthService {
 
         List<Empresa> list = empresaService.buscarListagemVinculoPorUsuario(objeto.getId());
 
+        String tempToken = jwtTokenAutenticacaoService.addAuthenticationSemTenant(login);
+
         return Map.of(
                 "tenants", list,
+                "tempToken", tempToken,
                 "role", objeto.getRoles().iterator().next().getNomeRole());
 
     }
@@ -117,7 +125,6 @@ public class AuthService {
             return erros;
         }
 
-  
         Usuario objeto = new Usuario();
         objeto.setLogin(login);
         objeto.setNome(nome);

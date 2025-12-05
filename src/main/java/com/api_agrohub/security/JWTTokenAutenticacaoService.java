@@ -1,6 +1,5 @@
 package com.api_agrohub.security;
 
-
 import java.io.IOException;
 import java.security.Principal;
 import java.security.SignatureException;
@@ -72,6 +71,23 @@ public class JWTTokenAutenticacaoService {
         return token;
     }
 
+    public String addAuthenticationSemTenant(String username) throws Exception {
+        SecretKeySpec secretKey = createSecretKey();
+
+        Usuario usuario = ApplicationContextLoad.getApplicationContext()
+                .getBean(UsuarioRepository.class)
+                .findUserByLogin(username);
+
+        String jwt = Jwts.builder()
+                .setSubject(username)
+                .claim("id_usuario", usuario.getId())
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(secretKey, SignatureAlgorithm.HS512)
+                .compact();
+
+        return TOKEN_PREFIX + jwt;
+    }
+
     public String extractTenantId(String token) {
         SecretKeySpec secretKey = createSecretKey();
 
@@ -85,6 +101,23 @@ public class JWTTokenAutenticacaoService {
                 .parseClaimsJws(token)
                 .getBody()
                 .get("id_tenant", String.class);
+    }
+
+    public Long extractLogin(String token) {
+        SecretKeySpec secretKey = createSecretKey();
+
+        if (token.startsWith(TOKEN_PREFIX)) {
+            token = token.replace(TOKEN_PREFIX, "").trim();
+        }
+
+        Long response = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("id_usuario", Long.class);
+
+        return response;
     }
 
     public Authentication getAuthentication(HttpServletRequest request, HttpServletResponse response) {

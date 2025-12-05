@@ -68,7 +68,7 @@ public class AuthController {
 
         try {
 
-            Map loginResponse = service.efetuarLogin(obj, response);
+            Map loginResponse = service.efetuarLogin(obj, response,request);
 
             return ResponseEntity.ok().body(loginResponse);
         } catch (Exception e) {

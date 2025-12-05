@@ -29,7 +29,7 @@ public class TenantInterceptor implements HandlerInterceptor {
             "/agrohub/v3/api-docs",
             "/agrohub/swagger-resources",
             "/agrohub/webjars",
-            // "/agrohub/auth",
+            "/agrohub/auth",
             // "/agrohub/login"
     };
 
@@ -42,17 +42,35 @@ public class TenantInterceptor implements HandlerInterceptor {
         return false;
     }
 
-    private String resolverTenantDoDominio(HttpServletRequest request) {
+    private boolean isLocalhost(HttpServletRequest request) {
+        String host = request.getServerName();
+        return host.contains("localhost") || "127.0.0.1".equals(host);
+    }
+
+    private String resolverTenant(HttpServletRequest request) {
 
         String host = request.getServerName();
-        String subdomain = host.split("\\.")[0];
 
-        if ("localhost".equalsIgnoreCase(subdomain)) {
-            return "DEV";
+        String tenantId = TenantContext.getTenantId();
+
+        if (isLocalhost(request)) {
+
+            // 2) Se não tiver header, tenta pegar do JWT (talvez você já coloque o tenant
+            // no token)
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && !authHeader.isBlank()) {
+                String tenantToken = jwtService.extractTenantId(authHeader);
+                if (tenantToken != null && !tenantToken.isBlank()) {
+                    return tenantToken;
+                }
+            }
+
+            // 3) Se ainda não tiver tenant (ex.: login, /public), retorna null
+            return null;
         }
-        if ("admin".equalsIgnoreCase(subdomain)) {
-            return "ADMIN_PANEL";
-        }
+
+        String hostSemPorta = host.split(":")[0]; // remove :8080 se tiver
+        String subdomain = hostSemPorta.split("\\.")[0];
 
         return tenantRepository.findTenantIdBySubdomain(subdomain)
                 .orElseThrow(() -> new RuntimeException("❌ Tenant não encontrado para domínio: " + subdomain));
@@ -62,23 +80,48 @@ public class TenantInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {
 
-        String tenantId = resolverTenantDoDominio(request);
-        TenantContext.setTenantId(tenantId);
+        String tenantId = resolverTenant(request);
 
-        tenantSessionFilter.enableFilter(); // habilita filtro SEMPRE
+        // Se conseguimos resolver tenant (DEV ou PROD), coloca no contexto
+        if (tenantId != null && !tenantId.isBlank()) {
+            TenantContext.setTenantId(tenantId);
+        }
 
-        if (!isPublic(request)) {
-            // valida token se existir
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader != null && !authHeader.isBlank()) {
-                String tenantToken = jwtService.extractTenantId(authHeader);
+        // Rotas públicas (login, cadastro, /public, etc.)
+        if (isPublic(request)) {
+            return true;
+        }
 
-                if (!tenantId.equalsIgnoreCase(tenantToken)) {
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.getWriter().write("{\"error\":\"Token não pertence a este tenant\"}");
-                    return false;
-                }
+        // Daqui pra baixo: rota protegida → precisa de token
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || authHeader.isBlank()) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("{\"error\":\"Token ausente\"}");
+            return false;
+        }
+
+        String tenantToken = jwtService.extractTenantId(authHeader);
+
+        // 🔹 DEV: se ainda não tinha tenant (ex: localhost), usa o do token
+        if (isLocalhost(request)) {
+            if (tenantId == null || tenantId.isBlank()) {
+                TenantContext.setTenantId(tenantToken);
+                return true;
             }
+            // se já tinha (ex.: header X-Tenant-ID), garante que bate
+            if (!tenantId.equalsIgnoreCase(tenantToken)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("{\"error\":\"Token não pertence a este tenant (DEV)\"}");
+                return false;
+            }
+            return true;
+        }
+
+        // 🔹 PROD: precisa bater domain.tenant x token.tenant
+        if (!tenantId.equalsIgnoreCase(tenantToken)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("{\"error\":\"Token não pertence a este tenant\"}");
+            return false;
         }
 
         return true;
